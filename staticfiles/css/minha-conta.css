@@ -1,0 +1,28 @@
+.content-minha-conta .grupo {
+    position: relative;
+}
+
+.content-minha-conta label.error {
+    position: absolute;
+    bottom: 4px;
+    right: 35px;
+    width:  auto;
+    margin-bottom: 0;
+    font-size: 10px;
+    color: #8b0000;
+}
+
+@media only screen and (max-width: 540px) {
+    .content-minha-conta label.error {
+        position: inherit;
+    }
+}         
+
+.middle-width label.error {
+    display: inline;
+    right: 0 !important;
+}
+
+.js-save-item:disabled {
+  cursor: default !important;
+}

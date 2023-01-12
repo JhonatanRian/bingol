@@ -1,0 +1,32 @@
+/** Pagina de boas vindas */
+.box-welcome-player {
+    padding: 10px;
+    border: 1px solid #CCCCCC;
+}
+
+.box-welcome-player h1 {
+    margin-bottom: 20px;
+    color: #0791b4 !important;
+}
+
+.box-welcome-player h3 {
+    margin-bottom: 40px;
+    font-size: 18px;
+    font-weight: unset;
+    color: #0791b4;
+}
+
+.box-welcome-player .agent-contact {
+    padding: 10px 20px;
+    background-color: #DDDDDD;
+    border:2px solid #CCCCCC;
+    border-radius: 50px;
+    margin-bottom: 100px;
+}
+
+.box-welcome-player .agent-contact span {
+    display: block;
+    font-size: 16px;
+    color: black;
+    text-align: center;
+}

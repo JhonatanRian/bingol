@@ -84,7 +84,7 @@ def user_payment_post_save(sender, instance, **kwargs):
     send_mail(
         'Payment Confirmation',
         'Thank you for your payment!',
-        'jhonatanrian.jr@gmail.com',
+        'bingooolVip@bingol.vip',
         [instance.payer.email],
         fail_silently=False,
     )
