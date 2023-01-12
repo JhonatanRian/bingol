@@ -62,6 +62,9 @@ class CustomUser(AbstractUser):
     def __repr__(self) -> str:
         return self.name
 
+    def __str__(self) -> str:
+        return self.name
+
     class Meta:
         verbose_name = 'user'
         verbose_name_plural = 'users'

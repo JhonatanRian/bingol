@@ -5,7 +5,7 @@ from finance.forms import PaymentMethodsModelForm
 from bingoool.settings import STRIPE_TEST_PUBLISHABLE_KEY
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from bingool.models import Match
+from bingool.models import Match, Card
 
 # Create your views here.
 
@@ -20,7 +20,8 @@ class PainelUsersView(TemplateView):
         context["PUBLISHABLE_KEY"] = STRIPE_TEST_PUBLISHABLE_KEY
         context['form'] = form
         context['user'] = self.request.user
-        context['match_current'] = Match.objects.filter(started=True)
+        context['match_current'] = Match.objects.filter(finalized=False).order_by("datetime_to_start").first()
+        context['cards'] = Card.objects.filter(bought=True, state='new', user=self.request.user)
         context['payments'] = self.request.user.payment.all().order_by('-datetime_saved')[:30]
 
         return context
