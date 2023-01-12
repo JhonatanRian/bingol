@@ -1,0 +1,39 @@
+@font-face {
+    font-family: 'blue_highwayd';
+    src: url('blue_highway_d-webfont.html') format('woff2'),
+         url('blue_highway_d-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'blue_highwaylinocut';
+    src: url('blue_highway_linocut-webfont.html') format('woff2'),
+         url('blue_highway_linocut-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'blue_highwayregular';
+    src: url('blue_highway_rg-webfont.html') format('woff2'),
+         url('blue_highway_rg-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'blue_highwaybold';
+    src: url('blue_highway_bd-webfont.html') format('woff2'),
+         url('blue_highway_bd-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'blue_highwaycondensed';
+    src: url('blue_highway_cd-webfont.html') format('woff2'),
+         url('blue_highway_cd-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}

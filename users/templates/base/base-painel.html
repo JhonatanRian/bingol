@@ -1,0 +1,199 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+        <title>Bingoool - {% block title %}{% endblock  %}</title>
+        <meta charset="utf-8" />
+        <meta name="description" content="" />
+        <meta name="keywords" content="" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+        <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700"/>
+        <link href='{% static "plugins/custom/datatables/datatables.bundle.css" %}'
+            rel="stylesheet"
+            type="text/css"/>
+        <link href='{% static "plugins/global/plugins.bundle.css" %}'
+            rel="stylesheet"
+            type="text/css"/>
+        <link href="{% static 'css/style.bundle.css' %}"
+            rel="stylesheet"
+            type="text/css"/>
+
+        <script src="{% static 'js/vue.min.js' %}"></script>
+        <script src="{% static 'js/jquery.min.js' %}"></script>
+        <script src="{% static 'js/jquery.validate.min.js' %}"></script>
+        <script src="{% static 'plugins/global/plugins.bundle.js' %}"></script>
+        <script src="https://js.stripe.com/v3/"></script>
+
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+        {% block links %}{% endblock links %}
+        {% block stylesheets %}{% endblock %}
+
+        {% block CustomStyles %}
+            <style>
+                .iconmenu {
+                    z-index: 105;
+                    position: fixed;
+                    inset: 0px 0px auto auto;
+                    margin: 0px;
+                    transform: translate(-30px, 59px);
+                }
+            </style>
+        {% endblock %}
+        {% block CustomScripts %}{% endblock %}
+    </head>
+    <body id="kt_body" style="background-image: url({% static 'media/patterns/header-bg.png' %})" class="header-fixed header-tablet-and-mobile-fixed toolbar-enabled">
+
+        {% block content %}{% endblock content %}
+
+        {% block javascripts %}
+        {% endblock javascripts %}
+
+    </body>
+
+</html>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.15/jquery.mask.min.js"></script>
+<script>
+    $("input[name='amount_payment']").mask('#.##0,00', {reverse: true});
+</script>
+
+<script>
+    function card(stripe_pubishable_key) {
+        let stripe = Stripe(stripe_pubishable_key);
+        let elements = stripe.elements();
+
+        let card = elements.create('card')
+        card.mount("#card-element")
+
+        card.addEventListener('change', function (event) {
+            var displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
+
+        // Handle form submission.
+        var form = document.getElementById('payment-form');
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            stripe.createToken(card).then(function (result) {
+                if (result.error) {
+                    // Inform the user if there was an error.
+                    var errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = result.error.message;
+                } else {
+                    // Create Payment Method BEGIN
+                    stripe.createPaymentMethod({
+                        type: 'card',
+                        card: card,
+                        billing_details: {
+                            email: "{{ user.email }}",
+                        },
+                    }).then(function (payment_method_result) {
+                        if (payment_method_result.error) {
+                            var errorElement = document.getElementById('card-errors');
+                            errorElement.textContent = payment_method_result.error.message;
+                        } else {
+                            pay(payment_method_result.paymentMethod.id)
+                        };
+                    });
+                    // Create Payment Method END
+                }
+            }); // createToken
+
+        }); // form.addEventListener(..)
+
+    }
+
+</script>
+<script>
+    const tokenCSRF = document.getElementsByName("csrfmiddlewaretoken")[0].value
+
+    function pay(paymentMethod){
+        let paymentIntent = document.getElementsByName("PaymentIntentId")[0]
+        let valueAmount = document.getElementsByName("amount_payment")[0]
+
+        fetch("{% url 'payment_done' %}", {
+            method: 'POST',
+            body: JSON.stringify({
+                paymentIntentId: paymentIntent.value,
+                paymentMethodId: paymentMethod,
+                amount: valueAmount.value
+            }),
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": tokenCSRF,
+            }
+        })
+            .then(response => response.json)
+            .then(json => {
+                document.querySelector("#payment-form > div.modal-footer > button.btn.btn-light").click()
+                let valueAmount = document.getElementsByName("amount_payment")[0]
+                let paymentForm = document.getElementById("payment-form")
+                valueAmount.value = ""
+                paymentForm.textContent = ""
+                paymentForm.innerHTML = '<div class="modal-body"><div class="container p-0"><div class="card px-4" id="card-element"></div><div id="card-errors" role="alert"></div></div></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button><button type="submit" class="btn btn-primary">Pagar</button></div>'
+                document.querySelector("a[data-bs-target='#kt_modal_payment']").click()
+                alteryBack()
+        })
+            .catch(err => console.log(err))
+
+    }
+
+    function alteryNext(){
+        $("#payment_add").attr("hidden", true);
+        $("#payment_next").attr("hidden", false);
+    }
+    
+    function alteryBack(){
+        $("#payment_add").attr("hidden", false);
+        $("#payment_next").attr("hidden", true);
+    }
+
+    $("#next_btn").click(function (){
+
+        let valueAmount = document.getElementsByName("amount_payment")[0]
+        alteryNext()
+        $.ajax({
+            url: '{% url 'create_payment' %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                amount: valueAmount.value
+            }),
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": tokenCSRF,
+            },
+            success: function(data){
+                let form = document.getElementById('payment-form');
+                let iIntentId = document.createElement("input")
+                iIntentId.setAttribute('type', 'hidden')
+                iIntentId.setAttribute('name', 'PaymentIntentId')
+                iIntentId.value = data.payment_intent_id
+                form.appendChild(iIntentId)
+            }
+        }),
+
+        card("{{ PUBLISHABLE_KEY }}")
+    })
+
+    document.querySelector("#payment-form > div.modal-footer > button.btn.btn-light").addEventListener("click", alteryBack)
+</script>
+<script>
+    let eleIcon = document.querySelector("#kt_header_user_menu_toggle > div.cursor-pointer.symbol.symbol-30px.symbol-md-40px > i")
+
+    let ele = document.getElementsByName("minimenuser")[0]
+    function ff (elem) {ele.classList.toggle("show"); ele.classList.toggle("iconmenu")}
+
+    eleIcon.addEventListener("click", ff)
+
+</script>

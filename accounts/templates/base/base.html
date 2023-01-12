@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+    <html lang="pt-br">
+    <head>
+        <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+        <title>Bingoool - {% block title %}{% endblock  %}</title>
+        <meta charset="utf-8" />
+        <meta name="description" content="" />
+        <meta name="keywords" content="" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+        <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700"/>
+        <link href='{% static "plugins/global/plugins.bundle.css" %}'
+            rel="stylesheet"
+            type="text/css"/>
+        <link href="{% static 'css/style.bundle.css' %}"
+            rel="stylesheet"
+            type="text/css"/>
+
+        <script src="{% static 'js/vue.min.js' %}"></script>
+        <script src="{% static 'js/jquery.min.js' %}"></script>
+        <script src="{% static 'js/jquery.validate.min.js' %}"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+        {% block links %}{% endblock links %}
+        {% block stylesheets %}{% endblock %}
+
+        {% block CustomStyles %}{% endblock %}
+        {% block CustomScripts %}{% endblock %}
+    </head>
+    <body id="kt_body" class="page-auth">
+
+        {% block content %}{% endblock content %}
+
+        {% block javascripts %}
+            <script src="{% static 'plugins/global/plugins.bundle.js' %}"></script>
+            <script src="{% static 'js/scripts.bundle.js' %}"></script>
+        {% endblock javascripts %}
+
+    </body>
+</html>

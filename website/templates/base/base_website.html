@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+        <title>Bingoool - {% block title %}{% endblock  %}</title>
+        <meta charset="utf-8" />
+        <meta name="description" content="" />
+        <meta name="keywords" content="" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="Bingoool!">
+        <meta property="og:url" content="">
+        <meta property="og:site_name" content="Bingoool">
+        <meta property="article:modified_time" content="2021-12-23T11:00:38+00:00">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="google-site-verification" content="nWQjmlHxd8a8r-wF1mP7AuKNJGsAbMcD_MZfPiI_H-s">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+        <link rel="stylesheet" href="{% static 'web/assets/mobirise-icons2/mobirise2.css' %}">
+        <link rel="stylesheet" href="{% static 'web/assets/mobirise-icons/mobirise-icons.css' %}">
+        <link rel="stylesheet" href="{% static 'icon54/style.css' %}">
+        <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
+        <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap-grid.min.css' %}">
+        <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap-reboot.min.css' %}">
+        <link rel="stylesheet" href="{% static 'parallax/jarallax.css' %}">
+        <link rel="stylesheet" href="{% static 'dropdown/css/style.css' %}">
+        <link rel="stylesheet" href="{% static 'socicon/css/styles.css' %}">
+        <link rel="stylesheet" href="{% static 'theme/css/style.css' %}">
+        <link rel="stylesheet" href="{% static 'theme/css/style.css' %}">
+        <link rel="preload" as="style" href="{% static 'mobirise/css/mbr-additional.css' %}">
+        <link rel="stylesheet" href="{% static 'mobirise/css/mbr-additional.css' %}" type="text/css">
+        <link rel="shortcut icon" href="{% static 'img/undefined-128x128.png' %}" type="image/x-icon">
+        <link rel="dns-prefetch" href="http://placeholder.wpsho/">
+        <link rel="dns-prefetch" href="http://www.google-analytics.com/">
+        <link rel="dns-prefetch" href="http://cdn.cookielaw.org/">
+        <link rel="dns-prefetch" href="http://geolocation.onetrust.com/">
+        <link rel="stylesheet" href="{% static 'wp-content/cache/min/1/0a29b633435d16c9d86e7e19aed584ea.css' %}">
+        <script type="text/javascript" src="{% static 'js/inc/js/jquery/jquery.js' %}" defer></script>
+        <script type="text/javascript" src="{% static 'js/inc/js/jquery/jquery-migrate.min.js' %}" defer></script>
+        
+        {% block links %}{% endblock links %}
+        {% block stylesheets %}{% endblock %}
+
+        {% block CustomStyles %}{% endblock %}
+        {% block CustomScripts %}
+        {% endblock %}
+        {% comment %} <link rel="stylesheet" href="{% static 'css/stylewebsite.css' %}"> {% endcomment %}
+
+    </head>
+    <body class="home page-template-default page page-id-18  color-custom style-default button-flat layout-full-width no-content-padding hide-love header-split minimalist-header-no sticky-header sticky-tb-color ab-hide subheader-both-center menu-line-below-80 footer-copy-center mobile-tb-hide mobile-side-slide mobile-mini-mr-ll tablet-sticky mobile-sticky be-reg-21592 elementor-default elementor-kit-3212 elementor-page elementor-page-18">
+
+        <div id="Wrapper">
+            {% block content %}
+                
+            {% endblock content %}
+        </div>
+
+
+        {% block javascripts %}
+
+        {% endblock javascripts %}
+
+    </body>
+</html>

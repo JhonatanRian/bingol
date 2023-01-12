@@ -1,0 +1,29 @@
+{% load static %}
+
+<!doctype html>
+<html lang="pt-br">
+
+    <head>
+        <script>
+            sessionStorage.setItem("token", "")
+            sessionStorage.setItem("token", "{{ token }}")
+            window.urlAPI = "{{ url_api }}"
+        </script>
+        <meta charset="utf-8"/>
+        <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+        <meta name="viewport" content="width=device-width,initial-scale=1"/>
+        <meta name="theme-color" content="#000000"/>
+        <meta name="description" content="Bingoool, ganhando dinheiro e se divertindo!"/>
+        <link rel="apple-touch-icon" href="/logo192.png"/>
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/glider-js@1/glider.min.js"></script>
+        <title>Bingoool - {% block title %} {% endblock title %} </title>
+        <script defer="defer" src="{% static 'js/main.b3e5c68b.js' %}">
+        </script><link href="{% static 'css/main.c915d87c.css' %}" rel="stylesheet">
+    </head>
+    <body>
+        {% block content %}
+
+        {% endblock content %}
+    </body>
+</html>
