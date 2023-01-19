@@ -178,12 +178,13 @@ def match_post_save(sender, instance: Match, **kwargs):
         ("Bingo 2", instance.value_award_all * Decimal(0.20), "b2", 15),
         ("Bingo 3", instance.value_award_all * Decimal(0.20), "b3", 15),
     )
-    for award in awards_list:
-        Award.objects.create(
-            name=award[0],
-            value=award[1],
-            initials=award[2],
-            num_balls=award[3],
-            match_id=instance.id
-        )
+    if not Award.objects.filter(match=instance).exists():
+        for award in awards_list:
+            Award.objects.create(
+                name=award[0],
+                value=award[1],
+                initials=award[2],
+                num_balls=award[3],
+                match_id=instance.id
+            )
     create_accumulate()

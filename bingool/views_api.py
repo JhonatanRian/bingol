@@ -2,7 +2,7 @@ from .models import Match, Bingo, Card, Ball
 from .serializers import MatchCurrentSerializer, FirstMatchCurrentSerializer, NextMatchSerializer, SyncSerializer, BingoSerializer, CardSerializer, AuthSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import ParseError
 
 from .utils import create_lines
 
@@ -45,14 +45,14 @@ def cards(request):
         cards = Card.objects.filter(bought=True, state="new", user=request.user)
 
         if (num_card + len(cards)) > match.number_cards_allowed:
-            return APIException(detail="Numero de compra impossivel")
+            raise ParseError("Não é possivel comprar essa quantidade de cartelas")
 
         money = request.user.money
         bonus = request.user.bonus
         payable = num_card * match.unitary_value_card
 
         if payable > money+bonus:
-            return APIException(detail="sem créditos suficiente")
+            raise ParseError("Sem créditos suficientes")
 
         if (money > payable):
             money, bonus = money - payable, bonus
@@ -62,10 +62,11 @@ def cards(request):
 
         user.money = money
         user.bonus = bonus
+        user.save()
 
         cards_payable = []
         for card in range(num_card):
-            cards_payable.append(Card.objects.create(user=user))
+            cards_payable.append(Card.objects.create(user=user, bought=True))
         
         for card in cards_payable:
             lines = create_lines()

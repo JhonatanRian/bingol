@@ -13,7 +13,7 @@ class GameTemplateView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = context = super(GameTemplateView, self).get_context_data(**kwargs)
-        context['token'] = Token.objects.get(self.request.user)
+        context['token'] = Token.objects.get(user=self.request.user)
         context['url_api'] = API_GAME
         
         return context
