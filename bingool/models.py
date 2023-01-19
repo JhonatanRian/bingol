@@ -64,7 +64,7 @@ class Award(Base):
     num_balls = models.IntegerField(
         "Numero de bolas para conseguir este prêmio", blank=False)
     match = models.ForeignKey(
-        "Match", null=True, blank=False, on_delete=models.CASCADE)
+        "Match", null=True, blank=False, on_delete=models.CASCADE, related_name="award")
 
     class Meta:
         verbose_name = "Prêmio"
@@ -83,7 +83,7 @@ class Winner(Base):
     card = models.ForeignKey(
         'Card', null=False, blank=False, on_delete=models.PROTECT)
     award = models.ForeignKey(
-        'Award', null=False, blank=False, on_delete=models.CASCADE)
+        'Award', null=False, blank=False, on_delete=models.CASCADE, related_name="winner")
 
     class Meta:
         verbose_name = "Vencedor"
@@ -95,8 +95,20 @@ class Winner(Base):
 
 
 class Bingo(Base):
+    colors = [
+        ("color1", "color1"), 
+        ("color2", "color2"), 
+        ("color3", "color3"), 
+        ("color4", "color4"), 
+        ("color5", "color5"), 
+        ("color6", "color6"), 
+        ("color7", "color7"), 
+        ("color8", "color8"), 
+        ("color9", "color9")]
+
     ball_drawn = models.IntegerField("Bola sorteada", null=True)
     standby = models.BooleanField("Bingo em espera", default=False)
+    color = models.CharField(max_length=6, choices=colors, null=True)
 
     class Meta:
         verbose_name = "Bingo"
@@ -109,7 +121,7 @@ class Ball(Base):
     drawn = models.BooleanField("Sorteado", default=False)
 
     bingo = models.ForeignKey(
-        "Bingo", null=False, blank=False, on_delete=models.CASCADE)
+        "Bingo", null=False, blank=False, on_delete=models.CASCADE, related_name="ball")
 
     class Meta:
         verbose_name = "Bola"
@@ -148,6 +160,14 @@ class BallsCards(Base):
         db_table = "balls_cards"
         ordering = None
 
+def create_accumulate():
+    if not Award.objects.filter(initials="ac").exists():
+        Award.objects.create(
+            name="Accumulate",
+            value=100,
+            initials="ac",
+            num_balls="28"
+        )
 
 @receiver(post_save, sender=Match)
 def match_post_save(sender, instance: Match, **kwargs):
@@ -166,3 +186,4 @@ def match_post_save(sender, instance: Match, **kwargs):
             num_balls=award[3],
             match_id=instance.id
         )
+    create_accumulate()

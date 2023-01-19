@@ -18,16 +18,21 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib.auth import views as auth_views
+from bingool.urls import router as r1
+
 
 urlpatterns = [
-    path("", include("website.urls")),
+    # path('api/v1', include(r1.urls, namespace='rest_framework')),
+    path('api/v1/', include('bingool.urls_api')),
     path('admin/gest', admin.site.urls),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+    path("", include("website.urls")),
     path("accounts/", include("accounts.urls")),
     path("users/", include("users.urls")),
     path("finances/", include("finance.urls")),
     path("bingoool/", include("bingool.urls")),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"), 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
                                                         
 admin.site.site_header = "Bingoool"

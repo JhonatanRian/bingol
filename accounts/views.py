@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from .forms import LoginForm, SignUpModelForm, PasswordResetForm, PasswordResetConfirmForm
-
+from rest_framework.authtoken.models import Token
 
 def login_view(request):
     form = LoginForm(request.POST or None)
@@ -21,6 +21,8 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
+                Token.objects.get(user=user).delete()
+                Token.objects.create(user=user)
                 return redirect("/users/painel-usuario")
             else:
                 msg = 'Usuario ou senha inválidos'
