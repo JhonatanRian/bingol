@@ -3,8 +3,12 @@ from users.models import CustomUser
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 from decimal import Decimal
+from django.core.exceptions import ValidationError
+from datetime import datetime, timedelta
+from pytz import utc
 # Create your models here.
 
+datetime.now()
 
 class Base(models.Model):
     datetime_created = models.DateTimeField(
@@ -17,7 +21,7 @@ class Base(models.Model):
 class Match(Base):
     datetime_to_start = models.DateTimeField(
         "Data e o Horario a ser iniciado", blank=False)
-    date_to_start = models.DateField("Data a ser iniciada", blank=False)
+    date_to_start = models.DateField("Data a ser iniciada", blank=False, help_text="Horario não deve ser no passado, escolha um tempo com 10 minutos depois da ultima partida marcada")
     started = models.BooleanField("iniciou", default=False)
     finalized = models.BooleanField("finalizou", default=False)
     automatic = models.BooleanField("Sorteio automatico", default=False, )
@@ -28,6 +32,29 @@ class Match(Base):
     value_award_all = models.DecimalField(
         "Valor total do prêmio", max_digits=6, decimal_places=2, blank=False)
     results = models.JSONField("dados da partida", blank=True, null=True)
+
+    def clean(self):
+        if self.datetime_to_start < datetime.now(utc):
+            raise ValidationError("A partida deve ter como horario para iniciar no futuro e não no passado")
+
+        if Match.objects.exists():
+            last_match = Match.objects.all().order_by("datetime_to_start").last()
+
+            if self.datetime_to_start < (last_match.datetime_to_start + timedelta(minutes=11)):
+                if matchs := Match.objects.filter(datetime_to_start__range=(self.datetime_to_start - timedelta(minutes=9, seconds=59), self.datetime_to_start + timedelta(minutes=9, seconds=59))):
+                    if (matchs.count() < 2) and matchs.contains(self):
+                        return
+                    raise ValidationError(f"O horario da partida é invalido por que existe partida salva onde esse horario se encaixa dentro do limite de tempo de jogo.")
+                elif self.datetime_created != None:
+                    return
+                
+                raise ValidationError(f"Uma partida precisa de no minimo 10 minutos para o bingo começar e finalizar, escolha uma data maior que {last_match.datetime_to_start - timedelta(hours=3)}, você só pode criar partidas depois desta data.")
+
+            if self.datetime_to_start < last_match.datetime_to_start:
+                
+                raise ValidationError(f"A ultima partida criada ficou para iniciar em {last_match.datetime_to_start - timedelta(hours=3)}, você só pode criar partidas depois desta data.")
+
+
 
     class Meta:
         verbose_name = "Partida"

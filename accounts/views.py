@@ -21,7 +21,8 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
-                Token.objects.get(user=user).delete()
+                if token_user := Token.objects.filter(user=user).first():
+                    token_user.delete()
                 Token.objects.create(user=user)
                 return redirect("/users/painel-usuario")
             else:

@@ -3,3 +3,6 @@ venv/
 bingoll-home
 bingoll-home/
 bingoool.zip
+staticfiles/
+__pycache__/
+*.pyc

@@ -11,6 +11,10 @@ class MatchAdmin(admin.ModelAdmin):
     
     exclude = ['date_to_start', "started", "finalized", "results"]
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(started=False).order_by("datetime_to_start")
+
     def save_model(self, request, obj, form, change) -> None:
         obj.date_to_start = obj.datetime_to_start.date()
         return super().save_model(request, obj, form, change)
