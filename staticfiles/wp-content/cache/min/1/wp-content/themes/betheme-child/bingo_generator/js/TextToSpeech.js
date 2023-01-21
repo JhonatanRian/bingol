@@ -1,1 +1,0 @@
-class TextToSpeech{synth=window.speechSynthesis;speak(word){let utterThis=new SpeechSynthesisUtterance(word);this.synth.speak(utterThis)}}
