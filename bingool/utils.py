@@ -1,6 +1,7 @@
 from secrets import choice
 from typing import List
 from random import randint
+from bingool.bingo.cbingo import Card, Bingo
 
 
 nuns_drawn = []
@@ -35,6 +36,18 @@ def transform_simple_card(card, id_view: bool = False):
     simple_card["line3"] = [card.balls[index].number for index in range(10,15)]
 
     return simple_card
+
+def format_card(card):
+    return Card(
+        uuid=card.id,
+            line_1=[ball.number for ball in card.line.all()[0].balls.all()],
+            line_2=[ball.number for ball in card.line.all()[1].balls.all()],
+            line_3=[ball.number for ball in card.line.all()[2].balls.all()]
+        )
+
+def keep_cards(b: Bingo, c: dict):
+    c: Card = format_card(c)
+    b.cards = c
 
 if __name__ == "__main__":
     # print(create_line())

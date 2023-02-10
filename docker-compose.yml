@@ -1,0 +1,89 @@
+version: "3.3"
+
+services:
+  nginx:
+    build:
+      dockerfile: ./docker/nginx.dockerfile
+      context: .
+    image: bingol/nginx_bingol:v1
+    container_name: nginx
+    ports:
+      - "80:80"
+    networks:
+      - nwbingol
+    depends_on:
+      - bingol1
+      - bingol2
+      - bingol3
+
+  pgbingol:
+    build:
+      dockerfile: ./docker/pgbingol.dockerfile
+      context: .
+    image: postgre/bingol:v1
+    container_name: pgbingol
+    ports:
+      - "5432"
+    networks:
+      - nwbingol
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+
+  bingol1:
+    build:
+      dockerfile: ./docker/bingol.dockerfile
+      context: .
+    image: bingol/app:v1
+    container_name: app_bingol1
+    ports:
+      - "8000"
+    networks:
+      - nwbingol
+    depends_on:
+      - pgbingol
+
+  bingol2:
+    build:
+      dockerfile: ./docker/bingol.dockerfile
+      context: .
+    image: bingol/app:v1
+    container_name: app_bingol2
+    ports:
+      - "8000"
+    networks:
+      - nwbingol
+    depends_on:
+      - pgbingol
+
+  bingol3:
+    build:
+      dockerfile: ./docker/bingol.dockerfile
+      context: .
+    image: bingol/app:v1
+    container_name: app_bingol3
+    ports:
+      - "8000"
+    networks:
+      - nwbingol
+    depends_on:
+      - pgbingol
+
+  bingolapp:
+    build:
+      dockerfile: ./docker/bingolapp.dockerfile
+      context: .
+    image: bingolapp/app:v1
+    container_name: bingolapp
+    networks:
+      - nwbingol
+    depends_on:
+      - bingol1
+      - bingol2
+      - bingol3
+
+networks:
+  nwbingol:
+    driver: bridge
+
+volumes:
+  pgdata:

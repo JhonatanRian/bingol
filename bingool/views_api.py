@@ -1,14 +1,14 @@
-from .models import Match, Bingo, Card, Ball
-from .serializers import MatchCurrentSerializer, FirstMatchCurrentSerializer, NextMatchSerializer, SyncSerializer, BingoSerializer, CardSerializer, AuthSerializer
+from .models import Match, Bingo, Card
+from .serializers import MatchCurrentSerializer, FirstMatchCurrentSerializer,  NextMatchSerializer, SyncSerializer, BingoSerializer, CardSerializer, AuthSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from .background_task import CreateCardsBackground
 
-from .utils import create_lines
 
 @api_view(['GET'])  
 def match_current(request):
-    match = Match.objects.filter(started=True).order_by('datetime_to_start').first()
+    match = Match.objects.filter(started=True).order_by('-datetime_to_start').first()
 
     if not match:
         match = Match.objects.filter(finalized=False).order_by("datetime_to_start").first()
@@ -31,7 +31,7 @@ def sync(request):
 
 @api_view(["GET"])
 def bingo(request):
-    match = Match.objects.filter(started=True).order_by('datetime_to_start').first()
+    match = Match.objects.filter(started=True).order_by('-datetime_to_start').first()
     bingo = Bingo.objects.filter(id=1).first()
     serializer = BingoSerializer(bingo, context={"match": match})
     return Response(serializer.data)
@@ -39,10 +39,13 @@ def bingo(request):
 @api_view(["GET", "POST"])
 def cards(request):
     if request.method == "POST":
-        num_card = int(request.data.get("num_cards"))
-        bingo = Bingo.objects.get(id=1)
+        num_card = int(request.data.get("number_cards"))
+
         match = Match.objects.filter(started=False).order_by("datetime_to_start").first()
         cards = Card.objects.filter(bought=True, state="new", user=request.user)
+
+        if not match:
+            raise ParseError("Sem pré partida disponivel para calcular a compra")
 
         if (num_card + len(cards)) > match.number_cards_allowed:
             raise ParseError("Não é possivel comprar essa quantidade de cartelas")
@@ -66,19 +69,16 @@ def cards(request):
 
         cards_payable = []
         for card in range(num_card):
-            cards_payable.append(Card.objects.create(user=user, bought=True))
-        
-        for card in cards_payable:
-            lines = create_lines()
-            numbers = lines[0] + lines[1] + lines[2]
+            cards_payable.append(Card(user=request.user, bought=True))
 
-            for number in numbers:
-                card.balls.add(Ball.objects.get(number=number))
+        Card.objects.bulk_create(cards_payable)
+
+        CreateCardsBackground(request.user).start()
 
         return Response(data={"msg": "success"})
         
-    match = Match.objects.filter(started=True).order_by('datetime_to_start').first()
-    cards = Card.objects.filter(match=match, user=request.user, state="inlive", bought=True).order_by("id")
+    match = Match.objects.filter(started=True).order_by('-datetime_to_start').first()
+    cards = Card.objects.filter(match=match, user=request.user, state="inlive", bought=True)
     serializer = CardSerializer(cards, many=True)
     return Response(serializer.data)
 

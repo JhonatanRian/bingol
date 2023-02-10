@@ -32,16 +32,15 @@ class BallSerializer(serializers.ModelSerializer):
         )
 
 
-class CardSerializer(serializers.ModelSerializer):
-    
-    balls = BallSerializer(many=True)
-    
-    class Meta:
-        model = Card
+class CardSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    balls = serializers.SerializerMethodField()
 
-        fields = (
-            'balls',
-        )
+    def get_balls(self, obj: Card):
+        lines = obj.line.all()
+        balls = [*lines[0].balls.all(), *lines[1].balls.all(), *lines[2].balls.all()]
+        serializer = BallSerializer(balls, many=True)
+        return serializer.data
 
 
 class WinnerSerializer(serializers.Serializer):
@@ -94,8 +93,9 @@ class FirstMatchCurrentSerializer(serializers.Serializer):
         return serializer.data
 
     def get_players(self, obj):
-        users_in_play = CustomUser.objects.filter(id__in=Card.objects.filter(bought=True, state__in=["inlive", "new"]))
-        return users_in_play.count()
+        subquery = Card.objects.filter(bought=True, state__in=["new", "inlive"]).values('user_id')
+        users = CustomUser.objects.filter(id__in=subquery).all()
+        return users.count()
 
     def get_display_wait(self, obj):
         next_match = Match.objects.filter(finalized=False).order_by("datetime_to_start").first()
@@ -116,8 +116,9 @@ class MatchCurrentSerializer(serializers.Serializer):
         return serializer.data
 
     def get_players(self, obj):
-        users_in_play = CustomUser.objects.filter(id__in=Card.objects.filter(bought=True, state__in=["inlive", "new"]))
-        return users_in_play.count()
+        subquery = Card.objects.filter(bought=True, state__in=["new", "inlive"]).values('user_id')
+        users = CustomUser.objects.filter(id__in=subquery).all()
+        return users.count()
 
     def get_display_wait(self, obj):
         next_match = Match.objects.filter(finalized=False).order_by("datetime_to_start").first()
@@ -193,7 +194,7 @@ class BingoSerializer(serializers.Serializer):
         return serializer.data
     
     def get_balls(self, obj):
-        balls = obj.ball.all()
+        balls = obj.ball.all().order_by("number")
         serializer = BallSerializer(balls, many=True)
         return serializer.data
 

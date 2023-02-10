@@ -5,10 +5,11 @@ from django.db.models.signals import post_save
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
-from pytz import utc
+import pytz
+from bingoool.settings import TIME_ZONE
 # Create your models here.
 
-datetime.now()
+tzone = pytz.timezone(TIME_ZONE)
 
 class Base(models.Model):
     datetime_created = models.DateTimeField(
@@ -34,27 +35,31 @@ class Match(Base):
     results = models.JSONField("dados da partida", blank=True, null=True)
 
     def clean(self):
-        if self.datetime_to_start < datetime.now(utc):
+        if Match.objects.filter(datetime_to_start=self.datetime_to_start).exists():
+            raise ValidationError("Já existe uma partida com essa data e hora escolhida.")
+
+        if self.datetime_to_start < datetime.now():
             raise ValidationError("A partida deve ter como horario para iniciar no futuro e não no passado")
 
         if Match.objects.exists():
             last_match = Match.objects.all().order_by("datetime_to_start").last()
 
-            if self.datetime_to_start < (last_match.datetime_to_start + timedelta(minutes=11)):
+            if self.datetime_to_start < (last_match.datetime_to_start + timedelta(minutes=9,seconds=59)):
                 if matchs := Match.objects.filter(datetime_to_start__range=(self.datetime_to_start - timedelta(minutes=9, seconds=59), self.datetime_to_start + timedelta(minutes=9, seconds=59))):
-                    if (matchs.count() < 2) and matchs.contains(self):
+                    if (matchs.count() < 2) and matchs.filter(datetime_to_start=self.datetime_to_start):
                         return
                     raise ValidationError(f"O horario da partida é invalido por que existe partida salva onde esse horario se encaixa dentro do limite de tempo de jogo.")
-                elif self.datetime_created != None:
+                else:
                     return
-                
-                raise ValidationError(f"Uma partida precisa de no minimo 10 minutos para o bingo começar e finalizar, escolha uma data maior que {last_match.datetime_to_start - timedelta(hours=3)}, você só pode criar partidas depois desta data.")
 
             if self.datetime_to_start < last_match.datetime_to_start:
                 
-                raise ValidationError(f"A ultima partida criada ficou para iniciar em {last_match.datetime_to_start - timedelta(hours=3)}, você só pode criar partidas depois desta data.")
+                raise ValidationError(f"A ultima partida criada ficou para iniciar em {last_match.datetime_to_start}, você só pode criar partidas depois desta data.")
 
-
+    @property
+    def to_start(self):
+        time = self.datetime_to_start
+        return time
 
     class Meta:
         verbose_name = "Partida"
@@ -156,6 +161,17 @@ class Ball(Base):
         db_table = "ball"
 
 
+class Line(Base):
+    name = models.CharField("Nome", max_length=2)
+    card = models.ForeignKey("Card", on_delete=models.CASCADE, related_name="line")
+    balls = balls = models.ManyToManyField(
+        "Ball", verbose_name="Bolas", through="BallsLine")
+
+    class Meta:
+        verbose_name = "Bola"
+        verbose_name_plural = "Bolas"
+        db_table = "line"
+
 class Card(Base):
     OPTIONS_STATE = [
         ('new', 'Nova'),
@@ -163,11 +179,10 @@ class Card(Base):
         ('finalized', 'Fora de jogo'),
     ]
 
-    balls = models.ManyToManyField(
-        "Ball", verbose_name="Bolas", through="BallsCards")
     state = models.CharField(
         "Estado da cartela", max_length=10, choices=OPTIONS_STATE, default='new')
     bought = models.BooleanField("Comprado", default=False)
+    implemented_lines = models.BooleanField("Linhas implementadas", default=False)
 
     match = models.ForeignKey(Match, null=True, on_delete=models.CASCADE)
     user = models.ForeignKey(CustomUser, null=True,
@@ -179,12 +194,12 @@ class Card(Base):
         db_table = "card"
 
 
-class BallsCards(Base):
-    card = models.ForeignKey("Card", null=True, on_delete=models.CASCADE)
+class BallsLine(Base):
+    line = models.ForeignKey("Line", null=True, on_delete=models.CASCADE)
     ball = models.ForeignKey("Ball", null=True, on_delete=models.CASCADE)
 
     class Meta:
-        db_table = "balls_cards"
+        db_table = "balls_line"
         ordering = None
 
 def create_accumulate():
@@ -195,6 +210,16 @@ def create_accumulate():
             initials="ac",
             num_balls="28"
         )
+
+# @receiver(post_save, sender=Card)
+# def card_post_save(sender, instance: Card, **kwargs):
+#     lines = create_lines()
+#     balls_models = Ball.objects.all()
+
+#     for i in range(1,4):
+#         line_model = Line.objects.create(name=f"l{i}", card=instance)
+#         line = lines[i-1]
+#         line_model.balls.add(*[balls_models.filter(number=ball).first() for ball in line])
 
 @receiver(post_save, sender=Match)
 def match_post_save(sender, instance: Match, **kwargs):
