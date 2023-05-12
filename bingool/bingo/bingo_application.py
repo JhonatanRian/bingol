@@ -74,16 +74,16 @@ class BingoApplication:
             self.rounds.append(round)
 
     def define_winners(self, winners: list[bingo.Winner]):
-        list_award_won = Counter([x.name for x in winners])
+        list_award_won = Counter([x.award.name for x in winners])
         count_acc = 0
 
         for winner in winners:
-            card_model: Card = rcard.get(winner.get('id'))
-            if winner.name == 'b1' and len(self.match.globe.balls_drawn) <= 38:
+            card_model: Card = rcard.get(winner.card.id)
+            if winner.award.name == 'b1' and len(self.match.globe.balls_drawn) <= 38:
                 count_acc += 1
             else:
                 award: Award = list(
-                    filter(lambda a: a.initials == winner.name, self.awards))[0]
+                    filter(lambda a: a.initials == winner.award.name, self.awards))[0]
             rwinner.create_winner(card_model.user_id, award.id, card_model.id,
                                   award.value / list_award_won[award.initials])
 

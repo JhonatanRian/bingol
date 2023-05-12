@@ -40,7 +40,7 @@ def transform_simple_card(card, id_view: bool = False):
 
 def format_card(card):
     return Card(
-        uuid=card.id,
+        id_db=card.id,
             line_1=[ball.number for ball in card.line.all()[0].balls.all()],
             line_2=[ball.number for ball in card.line.all()[1].balls.all()],
             line_3=[ball.number for ball in card.line.all()[2].balls.all()]
