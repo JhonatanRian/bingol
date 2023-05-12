@@ -2,7 +2,6 @@ import gc
 from random import choice
 from threading import Thread
 from time import sleep
-from typing import Dict, List
 from datetime import datetime
 from bingool.utils import keep_cards
 from loguru import logger
@@ -13,7 +12,7 @@ from bingool.data.match import RepositoryMatch as rmatch
 from bingool.data.winner import RepositoryWinner as rwinner
 from bingool.data.award import RepositoryAward as raward
 from collections import Counter
-from bingool.models import Match, Card, Award
+from bingool.models import Match, Card, Award, Bingo
 from bingool.bingo import bingo
 
 
@@ -102,7 +101,7 @@ class BingoApplication:
 
             number_ball_dranw = round.ball_drawn
 
-            winners: List[bingo.Winner] = round.winners
+            winners: list[bingo.Winner] = round.winners
 
             rball.draw_true(number_ball_dranw.number)
             rbingo.bingo_drawn(number_ball_dranw.number, color)
