@@ -6,6 +6,7 @@ from bingool.data.match import RepositoryMatch as rmatch
 from bingool.data.bingo import RepositoryBingo as rbingo
 from bingool.data.ball import RepositoryBall as rball
 from loguru import logger
+from bingool.bingo import factory
 
 class Command(BaseCommand):
     help = 'bot bingol'
@@ -28,7 +29,7 @@ class Command(BaseCommand):
             if not (match := rmatch.get_match()):
                 sleep(1)
             elif match.automatic:
-                application: BingoApplication = BingoApplication()
+                application: BingoApplication = BingoApplication(factory.match())
 
                 application.init()
 

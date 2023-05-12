@@ -1,7 +1,8 @@
 from secrets import choice
 from typing import List
 from random import randint
-from bingool.bingo.cbingo import Card, Bingo
+from bingool.bingo.bingo import Card, Match
+from bingool import models
 
 
 nuns_drawn = []
@@ -45,9 +46,9 @@ def format_card(card):
             line_3=[ball.number for ball in card.line.all()[2].balls.all()]
         )
 
-def keep_cards(b: Bingo, c: dict):
+def keep_cards(b: Match , c: models.Card):
     c: Card = format_card(c)
-    b.cards = c
+    b.add_card(c)
 
 if __name__ == "__main__":
     # print(create_line())

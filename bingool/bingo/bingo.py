@@ -1,252 +1,237 @@
-import gc
-from datetime import datetime
 from random import randint, shuffle
 from typing import List, Tuple
 from threading import Thread
+from dataclasses import dataclass, field
+from typing import Optional, Callable
+
+@dataclass(slots=True)
+class Ball:
+    number: int
+    drawn: bool = field(default=False)
+
+    def __eq__(self, other):
+        if isinstance(other, Ball):
+            return self.number == other.number
+        return False
 
 
-class Ball():
+@dataclass(slots=True)
+class Winner:
+    award: 'Award'
+    card: 'Card'
 
-    def __init__(self: object, number: int) -> None:
-        self.__number: int = number
-        self.__drawn: bool = False
+
+@dataclass(slots=True)
+class Round:
+    num_drawn: int
+    winners: Optional[list[Winner]]
+    ball_drawn: Ball
+
+
+@dataclass(slots=True)
+class Award:
+    name: str
+    rule: Callable[['Card'], Optional[Winner]] = field(repr=False)
+    inactivate_card: bool = field(default=False, repr=False)
+    amount_of_winners: int = field(default=1, repr=False)
+    sub_prizes_obtained: int = field(default=0, repr=False)
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.name == other
+        return False
+
+
+class Globe:
+    def __init__(self, max_length):
+        self.__balls: list[Ball] = [Ball(num) for num in range(1, max_length + 1)]
+        self.__balls_drawn: list[Ball] = []
 
     @property
-    def number(self: object) -> int:
-        return self.__number
+    def balls(self) -> list[Ball]:
+        return self.__balls
 
     @property
-    def drawn(self: object) -> bool:
-        return self.__drawn
+    def balls_drawn(self) -> list[Optional[Ball]]:
+        return self.__balls_drawn
 
-    @drawn.setter
-    def drawn(self: object, drawn: bool = True) -> None:
-        self.__drawn = drawn
+    def rotate(self):
+        for i in range(1, 3):
+            shuffle(self.__balls)
 
-    def __repr__(self: object) -> str:
-        return f"<ball {self.__number} {self.__drawn}>"
+    def drawn_ball(self):
+        self.rotate()
+        ball_drawn: Ball = self.__balls[randint(0, len(self.__balls) - 1)]
+        ball_drawn: Ball = self.__balls.pop(self.__balls.index(ball_drawn))
+        ball_drawn.drawn = True
+        self.__balls_drawn.append(ball_drawn)
+        return ball_drawn
 
-    def __str__(self: object) -> str:
-        return f"Ball({self.__number})"
+    def __repr__(self):
+        return f"<Globe balls: {len(self.balls)}, balls_drawn: {len(self.balls_drawn)}>"
 
-class Card():
 
-    def __init__(self: object, uuid, line_1, line_2, line_3) -> None:
-        self.__uuid: int = uuid
+class Card:
+
+    def __init__(self, id_db: int, line_1: list[Ball], line_2: list[Ball], 
+                 line_3: list[Ball]) -> None:
+        self.__id: int = id_db
         self.__line1: List[Ball] = [Ball(n) for n in line_1]
         self.__line2: List[Ball] = [Ball(n) for n in line_2]
         self.__line3: List[Ball] = [Ball(n) for n in line_3]
         self.line1_win: bool = False
         self.line2_win: bool = False
         self.line3_win: bool = False
+        self.__match: Optional['Match'] = None
 
     @property
-    def uuid(self: object):
-        return self.__uuid
+    def id(self):
+        return self.__id
 
-    def ball_drawn(self: object, number: int) -> None:
-        for ball in self.__line1:
-            if ball.number == number:
-                ball.drawn = True
-        for ball in self.__line2:
-            if ball.number == number:
-                ball.drawn = True
-        for ball in self.__line3:
-            if ball.number == number:
-                ball.drawn = True
-        self.line1_win = self.very_award(self.__line1)
-        self.line2_win = self.very_award(self.__line2)
-        self.line3_win = self.very_award(self.__line3)
+    @property
+    def line1(self):
+        return self.__line1
+    
+    @property
+    def line2(self):
+        return self.__line2
+    
+    @property
+    def line3(self):
+        return self.__line3
 
-    def very_award(self: object, line) -> bool:
-        count = 0
-        for ball in line:
-            if ball.drawn:
-                count += 1
-        if count == 5:
-            return True
+    @property
+    def match(self):
+        return self.__match
+
+    @match.setter
+    def match(self, match: 'Match'):
+        if self.match:
+            raise("This Card is already in a game")
+        self.__match = match
+
+    def score_drawn_ball(self, ball_drawn: Ball) -> Optional['Card']:
+        lines = [self.line1 + self.line2 + self.line3]
+        line_to_consider: list[Optional[list]] = [line for line in lines if ball_drawn in line]
         
-        return False
+        if line_to_consider:
+            line = line_to_consider[0]
+            line[line.index(ball_drawn)].drawn = True
+
+            self.line1_win = all([ball.drawn for ball in self.line1])
+            self.line2_win = all([ball.drawn for ball in self.line2])
+            self.line3_win = all([ball.drawn for ball in self.line3])
+            
+            self.__recognize_victory()
+        return self
+
+    def __recognize_victory(self) -> None:
+        for award in self.match.awards:
+            if winner := award.rule(self, award):
+                print('\n', winner, '\n')
+                if winner.award.inactivate_card:
+                    self.match.inactivate_card(self)
+                self.match.listen_card(winner)
+                self.match.prizes_obtained_round = award.name
 
 
-    def __repr__(self: object) -> str:
-        return f"{[self.__line1, self.__line2, self.__line3]}"
+    def __repr__(self) -> str:
+        return f"<Card {self.id}, {self.line1_win}, {self.line2_win}, {self.line3_win}>"
+        # return f"<Card line1_win: {self.line1_win}, line2_win: {self.line2_win}, line3_win: {self.line3_win}>"
 
 
-class Bingo():
-    
-    def __init__(self: object) -> None:
-        self.__consummated: bool = False
-        self.__results: dict = {}
-        self.__balls: List[Ball] = [Ball(x) for x in range(1, 91)]
-        self.__balls_drawn: List[Ball] = []
-        self.__cards: List[Card] = []
-        self.__cards_uuids: List[int] = []
-        self.__standby: bool = None
-        self.__cards_win_line: List[Card] = []
-        self.__cards_win_line2: List[Card] = []
-        self.__cards_win_bingo: List[Card] = []
-        self.__cards_win_bingo2: List[Card] = []
-        self.__cards_win_bingo3: List[Card] = []
-
-    @property
-    def balls_drawn(self: object) -> List[Ball]:
-        return self.__balls_drawn
-
-    @property
-    def balls(self: object) -> List[Ball]:
-        return self.__balls
-    
-    @property
-    def results(self: object) -> dict:
-        return self.__results
-
-    @property
-    def standby(self: object) -> bool:
-        return self.__standby
+class Match:
+    def __init__(self, awards: list[Award], globe: Globe):
+        self.__cards: list[Card] = []
+        self.__cards_winning = []
+        self.__cards_without_played: list[Optional[Card]] = []
+        self.__awards: list[Award] = awards
+        self.__award_used: list[Optional[Award]] = []
+        self.__globe: Globe = globe
+        self.__rounds: list[Round] = []
+        self.__prizes_obtained_round = []
 
     @property
-    def cards(self: object) -> List[Card]:
+    def cards(self) -> list[Card]:
         return self.__cards
 
     @property
-    def cards_uuids(self: object) -> List[Card]:
-        return self.__cards_uuids
+    def globe(self) -> Globe:
+        return self.__globe
 
     @property
-    def cards_winners_line(self: object) -> List[Card]:
-        return self.__cards_win_line
+    def awards(self) -> list[Award]:
+        return self.__awards
 
     @property
-    def cards_winners_line2(self: object) -> List[Card]:
-        return self.__cards_win_line2
-
+    def rounds(self) -> list[Round]:
+        return self.__rounds
+    
     @property
-    def cards_winners_bingo(self: object) -> List[Card]:
-        return self.__cards_win_bingo
+    def prizes_obtained_round(self):
+        return self.__prizes_obtained_round
+    
+    @prizes_obtained_round.setter
+    def prizes_obtained_round(self, award_name: str):
+        self.__prizes_obtained_round.append(award_name)
 
-    @property
-    def cards_winners_bingo2(self: object) -> List[Card]:
-        return self.__cards_win_bingo2
-
-    @property
-    def cards_winners_bingo3(self: object) -> List[Card]:
-        return self.__cards_win_bingo3
-
-    @property
-    def drawn_time(self: object) -> datetime:
-        return self.__drawn_time
-
-    @cards.setter
-    def cards(self: object, card: Card) -> None:
-        if self.__consummated:
-            raise Exception("bingo consumed")
-        
+    def add_card(self, card: Card):
         self.__cards.append(card)
+        card.match = self
 
-    @cards_uuids.setter
-    def cards_uuids(self: object, _id: int) -> None:
-        if self.__consummated:
-            raise Exception("bingo consumed")
+    def listen_card(self, card: Card):
+        self.__cards_winning.append(card)
 
-        self.__cards_uuids.append(_id)
+    def inactivate_card(self, card: Card):
+        self.__cards_without_played.append(card)
 
-    @standby.setter
-    def standby(self: object, s: bool) -> None:
-        if self.__consummated:
-            raise Exception("bingo consumed")
+    def __change_award(self):
+        if self.__cards_winning:
+            # print(self.__award_used)
+            # print(self.__cards_without_played)
+            # print(self.cards)
+            self.__prizes_obtained_round = list(set(self.__prizes_obtained_round))
+            # print(self.__prizes_obtained_round)
+            for name_award in self.__prizes_obtained_round:
+                index_award = self.__awards.index(name_award)
+                if self.__awards[index_award].amount_of_winners > 0:
+                    continue
+                self.__award_used.append(self.__awards.pop(index_award))
+            self.__prizes_obtained_round.clear()
 
-        self.__standby = s
 
-    def drawn(self: object) -> None:
-        if self.__consummated:
-            raise Exception("bingo consumed")
-
-        shuffle(self.__balls)
-        ball_drawn: Ball = self.__balls[randint(0, len(self.__balls) - 1)]
-        ball_drawn: Ball = self.__balls.pop(self.__balls.index(ball_drawn))
-        ball_drawn.drawn = True
-        self.__balls_drawn.append(ball_drawn)
-        self.cards_operations_drawn(ball_drawn.number)  
-        return ball_drawn.number
-
-    def cards_operations_drawn(self: object, number: int) -> None:
-        if self.__consummated:
-            raise Exception("bingo consumed")
-
-        func = lambda c, n: c.ball_drawn(n)
-        threads = [Thread(target=func, args=(card, number)) for card in self.__cards]
+    def __warn_cards(self, ball: Ball):
+        func = lambda c, b: c.score_drawn_ball(b)
+        threads = [Thread(target=func, args=(card, ball)) for card in self.__cards]
         [thread.start() for thread in threads]
         [thread.join() for thread in threads]
 
-    def cards_winners(self: object) -> tuple:
-        if self.__consummated:
-            raise Exception("bingo consumed")
-        
-        cards_winners: List[Tuple[Card, str]] = []
-
-        threads = [Thread(target=self.verify_cards_winners, args=(card, cards_winners,)) for card in self.__cards]
-        [thread.start() for thread in threads]
-        [thread.join() for thread in threads]
-
-        [self.increment_cards_winners(card) for card in cards_winners]
-
-        return tuple(cards_winners)
-
-    def verify_cards_winners(self, card: Card, cards_winners: list):    
-        line1_win: bool = card.line1_win
-        line2_win: bool = card.line2_win
-        line3_win: bool = card.line3_win
-
-        if not self.__cards_win_line:
-            if any([line1_win, line2_win,line3_win]):
-                cards_winners.append((card, "l1"))
-        elif not self.__cards_win_line2:
-            if all([line1_win, line2_win]) or all([line1_win, line3_win]) or all([line2_win, line3_win]):
-                cards_winners.append((card, "l2"))
-        elif not self.__cards_win_bingo:
-            if all([line1_win, line2_win, line3_win]):
-                cards_winners.append((card, "b1"))
-        elif not self.__cards_win_bingo2:
-            if all([line1_win, line2_win, line3_win]):
-                cards_winners.append((card, "b2"))
-        elif not self.__cards_win_bingo3:
-            if all([line1_win, line2_win, line3_win]):
-                cards_winners.append((card, "b3"))
-
-    def increment_cards_winners(self: object, card):
-        op: str = card[1]
-        if op == "l1":
-            self.__cards_win_line.append(card[0])
-        elif op == "l2":
-            self.__cards_win_line2.append(card[0])
-        elif op == "b1":
-            self.__cards_win_bingo.append(card[0])
-        elif op == "b2":
-            self.__cards_win_bingo2.append(card[0])
-        elif op == "b3":
-            self.__cards_win_bingo3.append(card[0])
-
-    def generate_results(self: object) -> dict:
-        if self.__consummated:
-            raise Exception("bingo consumed! Use Bingo.results")
-
-        res: list = []
-        while len(self.balls_drawn) < 90:
-            num_drawn: int = self.drawn()
-            winners: List[Tuple[Card, str]] = self.cards_winners()
-            res.append(
-                {
-                    'num_draw': num_drawn,
-                    'winners': [{
-                        'id': winner[0].uuid,
-                        'initials': winner[1]
-                    } for winner in winners]
-                }
+    def move_game(self) -> Round:
+        if len(self.cards) == 0 or not self.__awards or not self.globe.balls:
+            raise StopIteration
+        ball_drawn = self.globe.drawn_ball()
+        self.__warn_cards(ball_drawn)
+        round_ = Round(
+            num_drawn=len(self.__rounds)+1,
+            winners=self.__cards_winning.copy(),
+            ball_drawn=ball_drawn
             )
-        self.__consummated = True
-        self.__results = res
-        return res
+        self.__rounds.append(round)
+        self.__change_award()
+        self.__cards_winning.clear()
+        
+        return round_
+
+    def __iter__(self) -> 'Match':
+        return self
+
+    def __next__(self) -> Round:
+        return self.move_game()
+
+    def __repr__(self):
+        round = self.__rounds[-1] if self.rounds else 'Not Started'
+        return f'<Match current_award: {self.current_award.name}, round: {round}>'
+
 
 if __name__ == "__main__":
     b = Bingo()

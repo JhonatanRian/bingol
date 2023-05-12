@@ -3,7 +3,6 @@ from random import choice
 from threading import Thread
 from time import sleep
 from typing import Dict, List
-from .cbingo import Bingo
 from datetime import datetime
 from bingool.utils import keep_cards
 from loguru import logger
@@ -15,35 +14,32 @@ from bingool.data.winner import RepositoryWinner as rwinner
 from bingool.data.award import RepositoryAward as raward
 from collections import Counter
 from bingool.models import Match, Card, Award
-import pytz
+from bingool.bingo import bingo
 
-timezone = pytz.timezone("America/Sao_Paulo")
 
 class BingoApplication:
 
-    def __init__(self: object) -> None:
+    def __init__(self, match: bingo.Match) -> None:
         self.__match_model: Match = rmatch.get_match()
         self.awards = list(self.match_model.award.all())
-        self.__bingo: Bingo = Bingo()
+        self.match: bingo.Match = match
+        self.standby = True
+        self.rounds: list[self.rounds] = []
         self.colors = ["color1", "color2", "color3", "color4", "color5", "color6", "color7", "color8", "color9"]
 
     @property
-    def bingo(self) -> Bingo:
-        return self.__bingo
-
-    @property
-    def match_model(self: object) -> Match:
+    def match_model(self) -> Match:
         return self.__match_model
 
-    def insert_cards_in_bingo(self: object):
+    def insert_cards_in_bingo(self):
         resp_cards: list[Card] = rcard.get_all_new_cards()
-        threads = [Thread(target=keep_cards, args=(self.__bingo, card))
+        threads = [Thread(target=keep_cards, args=(self.match, card))
                    for card in resp_cards]
         [thread.start() for thread in threads]
         [thread.join() for thread in threads]
         rcard.update_inlive_cards(resp_cards, self.match_model.id)
 
-    def wait_and_saving(self: object, time: datetime):  
+    def wait_and_saving(self, time: datetime):  
         time_left_seconds = (time - datetime.now()).seconds
         while time_left_seconds != 0:
             logger.info(F"capturando cartelas; TEMPO:{time_left_seconds}s")
@@ -58,33 +54,36 @@ class BingoApplication:
                 self.insert_cards_in_bingo()
 
             if time_left_seconds == 0:
-                self.bingo.standby = False
+                self.standby = False
 
 
-    def standby_process(self: object, time: datetime):
+    def standby_process(self, time: datetime):
         rbingo.standby(True)
-        self.bingo.standby = True
 
         thread = Thread(target=self.wait_and_saving, args=(time,))
         thread.start()
-        while self.bingo.standby:
+        while self.standby:
             ...
 
         rmatch.initiated(self.match_model.id)
-        self.bingo.generate_results()
+        self.generate_results()
         thread.join()
 
-    def define_winners(self: object, winners: list):
-        list_award_won = Counter([x.get("initials") for x in winners])
+    def generate_results(self):
+        for round in self.match:
+            self.rounds.append(round)
+
+    def define_winners(self, winners: list[bingo.Winner]):
+        list_award_won = Counter([x.name for x in winners])
         count_acc = 0
 
         for winner in winners:
             card_model: Card = rcard.get(winner.get('id'))
-            if winner.get('initials') == 'b1' and len(self.bingo.balls_drawn) <= 38:
+            if winner.name == 'b1' and len(self.match.globe.balls_drawn) <= 38:
                 count_acc += 1
             else:
                 award: Award = list(
-                    filter(lambda a: a.initials == winner.get('initials'), self.awards))[0]
+                    filter(lambda a: a.initials == winner.name, self.awards))[0]
             rwinner.create_winner(card_model.user_id, award.id, card_model.id,
                                   award.value / list_award_won[award.initials])
 
@@ -95,28 +94,23 @@ class BingoApplication:
                 rwinner.create_winner(card_model.user_id,
                                       award.id, card_model.id, value)
 
-    def run_bingo(self: object):
-        results: List[Dict] = self.bingo.results
+    def run_bingo(self):
         rbingo.standby(True)
-        for prize_draw in results:
+        for round in self.rounds:
+            round: bingo.Round = round
             color = choice(self.colors)
 
-            number_ball_dranw = prize_draw.get('num_draw')
-            
-            winners: List[Dict] = prize_draw.get("winners")
-            
-            rball.draw_true(number_ball_dranw)
-            rbingo.bingo_drawn(number_ball_dranw, color)
+            number_ball_dranw = round.ball_drawn
 
-            logger.info(f"bola: {number_ball_dranw} sorteada")
+            winners: List[bingo.Winner] = round.winners
+
+            rball.draw_true(number_ball_dranw.number)
+            rbingo.bingo_drawn(number_ball_dranw.number, color)
+
+            logger.info(f"bola: {number_ball_dranw.number} sorteada")
             if winners:
                 self.define_winners(winners)
                 logger.info(f"Temos {len(winners)} cartelas vencedoras")
-                if [winner for winner in winners if winner.get('initials') == 'b3']:
-                    logger.info(
-                        "Bingo finalizado. Todos os premios já foram conquistados")
-                    sleep(6)
-                    break
                 sleep(6)
                 continue
             sleep(4)
@@ -128,7 +122,7 @@ class BingoApplication:
         rbingo.reset()
         gc.collect()
 
-    def bingo_raffling(self: object):
+    def bingo_raffling(self):
 
         logger.info("STANDBY")
         self.standby_process(self.match_model.datetime_to_start)
@@ -137,7 +131,7 @@ class BingoApplication:
         sleep(7)
         self.run_bingo()
 
-    def bingo_not_raffling(self: object):
+    def bingo_not_raffling(self):
 
         logger.info("STANDBY")
         self.standby_process(self.match_model.datetime_to_start)
@@ -158,7 +152,7 @@ class BingoApplication:
                         "Bingo finalizado. Todos os premios já foram conquistados")
                     break
 
-    def init(self: object, draw: bool = True):
+    def init(self, draw: bool = True):
         if draw:
             self.bingo_raffling()
             return
