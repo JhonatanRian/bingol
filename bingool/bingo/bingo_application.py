@@ -118,7 +118,7 @@ class BingoApplication:
         logger.info(
             "Deletando objetos, salvando resultados na partida e resetando bingo na API")
         rcard.update_finalized_all_cards(self.match_model.id)
-        rmatch.save_results(self.match_model.id, self.bingo.results)
+        # rmatch.save_results(self.match_model.id, self.bingo.results)
         rbingo.reset()
         gc.collect()
 
